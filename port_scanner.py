@@ -20,36 +20,49 @@ def get_hostname(target):
     return host
 
 
+def get_verbose_output(host, ip):
+    v_str = ''
+    if host[0].isnumeric():
+        v_str = '''Open ports for {host}\nPORT     SERVICE'''.format(host=host)
+    else:
+        v_str = '''Open ports for {host} ({ip})\nPORT     SERVICE'''.format(
+            host=host, ip=ip)
+    return v_str
+
+
+def get_verbose_spacing(port):
+    total = 9
+    space = ' '
+    return (total - len(port)) * space
+
+
 def get_open_ports(target, port_range, verbose=False):
     open_ports = []
     ip = get_ip(target)
     host = get_hostname(target)
     ports = list(range(port_range[0], port_range[1]))
-    v_str = '''Open ports for {host} ({ip})\nPORT     SERVICE\n'''.format(
-        host=host, ip=ip)
+    v_str = get_verbose_output(host, ip)
 
-    try:
-        for p in ports:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            socket.setdefaulttimeout(1)
-            result = s.connect_ex((ip, int(p)))
+    for idx, p in enumerate(ports):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket.setdefaulttimeout(1)
+        result = s.connect_ex((ip, int(p)))
 
-            if result == 0:
-                open_ports.append(p)
-
-            if verbose:
-                v_str += str(p)
-                if p in ports_and_services:
-                    v_str += '      '
-                    v_str += ports_and_services[p]
-                v_str += '\n'
-
-            s.close()
-    except:
-        if 'www.' in target:
-            return 'Error: Invalid hostname'
+        if result == 0:
+            open_ports.append(p)
         else:
-            return 'Error: Invalid IP address'
+            if target[0].isnumeric():
+                return 'Error: Invalid IP address'
+            else:
+                return 'Error: Invalid hostname'
+
+        if verbose and p in ports_and_services:
+            v_str += '\n'
+            v_str += str(p)
+            v_str += get_verbose_spacing(p)
+            v_str += ports_and_services[p]
+
+        s.close()
 
     if verbose:
         return v_str
